@@ -542,9 +542,31 @@ def train():
         **{k: v for k, v in data_module.items() if k != "predict_dataset"},
     )
 
+    from transformers import TrainerCallback
+    class ParameterCountCallback(TrainerCallback):
+        def on_train_begin(self, args, state, control, **kwargs):
+            model = kwargs.get("model")
+            if isinstance(model, FSDP):
+                # Calculate # of params in the local shard
+                local_numel = sum(p.numel() for p in model.parameters())
+                print(f"Rank {torch.distributed.get_rank()}: Local shard has {local_numel} parameters")
+                
+                # Sum the parameter counts across all ranks to get the total
+                total_numel = torch.tensor(local_numel, device=torch.cuda.current_device())
+                torch.distributed.all_reduce(total_numel, op=torch.distributed.ReduceOp.SUM)
+                if torch.distributed.get_rank() == 0:
+                    print(f"Total number of parameters in the FSDP model: {total_numel.item()}")
+            else:
+                print("NOT using FSDP.")
+
     # Callbacks
     if not args.full_finetune:
         trainer.add_callback(SavePeftModelCallback)
+    trainer.add_callback(ParameterCountCallback)
+
+    # # Callbacks
+    # if not args.full_finetune:
+    #     trainer.add_callback(SavePeftModelCallback)
 
     # Verifying the datatypes.
     dtypes = {}

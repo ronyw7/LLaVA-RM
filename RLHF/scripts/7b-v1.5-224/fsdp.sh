@@ -3,12 +3,12 @@
 set -e
 set -x
 
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export DATA_DIR="/root/LLaVA-RLHF/data_dir"
 export MODEL_DIR="/root/LLaVA-RLHF/model_dir"
 export PYTHONPATH="$PWD:$PYTHONPATH"
-export GPUS_PER_NODE=2
-export OMP_NUM_THREADS=2
+export GPUS_PER_NODE=4
+export OMP_NUM_THREADS=8
 
 # MODEL CONFIG
 VISION_TOWER=openai/clip-vit-large-patch14-336

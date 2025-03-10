@@ -502,7 +502,7 @@ def compute_reward_modeling_metrics(eval_prediction: EvalPrediction) -> Dict:
     logits = torch.tensor(
         eval_prediction.predictions[..., 0] - eval_prediction.predictions[..., 1]
     ).squeeze(-1)
-    labels = torch.tensor(eval_prediction.label_ids[-1]).squeeze(-1)
+    labels = torch.tensor(eval_prediction.label_ids[2]).squeeze(-1) # ['choice']
     predictions = (logits >= 0.0).long()
     accuracy = predictions.eq(labels).float().mean().item()
     label_positive_rate = (labels == 1).float().mean().item()
