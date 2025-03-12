@@ -16,6 +16,7 @@ from transformers import set_seed
 from transformers import AutoTokenizer
 
 from lora_utils import (
+    SaveModelCallback,
     SavePeftModelCallback,
     print_trainable_parameters,
     get_last_checkpoint,
@@ -174,7 +175,7 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         default="./output", metadata={"help": "The output dir for logs and checkpoints"}
     )
     optim: str = field(
-        default="paged_adamw_32bit", metadata={"help": "The optimizer to be used"}
+        default="adamw_torch", metadata={"help": "The optimizer to be used"}
     )
     per_device_train_batch_size: int = field(
         default=1,
@@ -232,7 +233,7 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
     save_strategy: str = field(
         default="steps", metadata={"help": "When to save checkpoints"}
     )
-    save_steps: int = field(default=250, metadata={"help": "How often to save a model"})
+    save_steps: int = field(default=25, metadata={"help": "How often to save a model"})
     save_total_limit: int = field(
         default=40,
         metadata={
@@ -289,12 +290,12 @@ class TrainingArguments(transformers.Seq2SeqTrainingArguments):
         default=False,
         metadata={"help": "Enable activation checkpointing in FSDP"}
     )
-    fsdp_use_orig_params: bool = field(
-        default=True,
+    fsdp_use_orig_params: str = field(
+        default="true",
         metadata={"help": "Use original parameters in FSDP, needed for gradient checkpointing"}
     )
-    fsdp_sync_module_states: bool = field(
-        default=True,
+    fsdp_sync_module_states: str = field(
+        default="true",
         metadata={"help": "Sync module states at the beginning of training"}
     )
 
@@ -428,9 +429,6 @@ def train():
         rank0_print("Training from scratch.")
     else:
         rank0_print("Loading from checkpoint:", checkpoint_dir)
-        if args.resume_from_training:
-            rank0_print("Resuming from training not supported yet. Exiting.")
-            exit(1)
 
     tokenizer_model_name = args.model_name_or_path
     TokenizerClass = AutoTokenizer
@@ -562,11 +560,8 @@ def train():
     # Callbacks
     if not args.full_finetune:
         trainer.add_callback(SavePeftModelCallback)
+    trainer.add_callback(SaveModelCallback)
     trainer.add_callback(ParameterCountCallback)
-
-    # # Callbacks
-    # if not args.full_finetune:
-    #     trainer.add_callback(SavePeftModelCallback)
 
     # Verifying the datatypes.
     dtypes = {}
@@ -586,7 +581,12 @@ def train():
     # Training
     if args.do_train:
         logger.info("*** Train ***")
-        train_result = trainer.train()
+        # train_result = trainer.train()
+        if args.resume_from_training and checkpoint_dir is not None:
+            print("Resuming training from checkpoint:", checkpoint_dir)
+            train_result = trainer.train(resume_from_checkpoint=checkpoint_dir)
+        else:
+            train_result = trainer.train()
         metrics = train_result.metrics
         trainer.log_metrics("train", metrics)
         trainer.save_metrics("train", metrics)

@@ -5,7 +5,7 @@
   "cpu_offload": {"offload_params": false},
   "mixed_precision": {"param_dtype": "bfloat16", "reduce_dtype": "bfloat16", "buffer_dtype": "bfloat16"},
   "xla": false,
-  "sync_module_states": true,
-  "use_orig_params": true,
+  "sync_module_states": "true",
+  "use_orig_params": "true",
   "state_dict_type": "sharded"
 }

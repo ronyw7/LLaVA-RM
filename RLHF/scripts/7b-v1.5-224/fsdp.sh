@@ -44,8 +44,8 @@ cat > $FSDP_CONFIG_FILE << EOL
   "cpu_offload": {"offload_params": false},
   "mixed_precision": {"param_dtype": "bfloat16", "reduce_dtype": "bfloat16", "buffer_dtype": "bfloat16"},
   "xla": false,
-  "sync_module_states": true,
-  "use_orig_params": true,
+  "sync_module_states": "true",
+  "use_orig_params": "true",
   "state_dict_type": "sharded"
 }
 EOL
@@ -85,7 +85,7 @@ torchrun \
     --evaluation_strategy "steps" \
     --eval_steps 100 \
     --save_strategy "steps" \
-    --save_steps 200 \
+    --save_steps 10 \
     --save_total_limit 20 \
     --weight_decay 0.0 \
     --warmup_ratio 0.03 \
